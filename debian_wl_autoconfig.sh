@@ -65,7 +65,7 @@ install_wpa_supplicant() {
 }
 
 purge_ifupdown() {
-	echo "Purging the package "ifupdown" is recommended to reduce unintended side-effects"
+	echo "Purging the package \"ifupdown\" is recommended to reduce unintended side-effects"
 	echo "Purging Package: ifupdown..."
 
 	if confirm_prompt; then
