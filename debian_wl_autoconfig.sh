@@ -118,12 +118,8 @@ create_wpa_conf() {
 	sudo touch $WPA_CONF
 	
 	echo "ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev
-update_config=1
-
-network={
-	ssid=\"$SSID\"
-	psk=\"$PSK\"
-}" | sudo tee $WPA_CONF >/dev/null 2>&1
+update_config=1\n" | sudo tee $WPA_CONF >/dev/null 2>&1
+	wpa_passphrase $SSID $PSK | sudo tee -a $WPA_CONF >/dev/null 2>&1
 }
 
 enable_services() {
