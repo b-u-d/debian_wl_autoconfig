@@ -1,13 +1,13 @@
 # debian wl autoconfiguration script
 
-Shell script that automatically installs and configures [wl drivers](https://packages.debian.org/search?keywords=broadcom-sta-dkms) and [wpa_supplicant](https://packages.debian.org/search?keywords=wpasupplicant) as a systemd service on Debian Standard.
-Tested and working on Debian 12 Standard with the Broadcom BCM4352 chip.
+Shell script that automatically installs and configures [wl drivers](https://packages.debian.org/search?keywords=broadcom-sta-dkms) and [wpa_supplicant](https://packages.debian.org/search?keywords=wpasupplicant) as a systemd service on Debian Standard. Tested and working on Debian 12 Standard with the Broadcom BCM4352 chip.
 
 ## Requirements
+- A compatible [Broadcom wireless LAN chip](https://wiki.debian.org/wl)
 - Debian Standard
-- [Git](https://packages.debian.org/search?keywords=git)
+- [git](https://packages.debian.org/search?keywords=git)
 - An internet connection
-- Knowing the name of your wireless network device (`ip link show`)
+- The name of your wireless network device (`ip link show`)
 
 ## Usage
 Clone this Repository:
