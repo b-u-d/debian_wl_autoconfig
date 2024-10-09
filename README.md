@@ -5,6 +5,7 @@ Tested and working on Debian 12 Standard with the Broadcom BCM4352 chip.
 
 ## Requirements
 - Debian Standard
+- [Git](https://packages.debian.org/search?keywords=git)
 - An internet connection
 - Knowing the name of your wireless network device (`ip link show`)
 

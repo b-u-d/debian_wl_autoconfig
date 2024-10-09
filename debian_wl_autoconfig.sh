@@ -78,7 +78,7 @@ purge_ifupdown() {
 # Reads input for network interface choice
 choose_network_interface() {
 	echo "Available network interfaces:"
-	ip -o link show | awk -F': ' '- {print $2}' | grep -v lo
+	ip -o link show | awk -F': ' '{print $2}' | grep -v lo
 	read -p "Enter the network interface for your wireless device (e.g., wlan0): " INTERFACE
 
 	# Validate the interface
