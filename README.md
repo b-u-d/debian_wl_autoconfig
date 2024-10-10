@@ -23,5 +23,5 @@ chmod +x debian_wl_autoconfig.sh
 
 Run the Script:
 ```bash
-./autoconfigure.sh
+./debian_wl_autoconfig.sh
 ```

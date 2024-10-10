@@ -17,13 +17,13 @@ confirm_prompt() {
 
 # Checks if non-free packages are enabled
 check_sources() {
-	echo "Before continuing, ensure the non-free component is enabled in apt sources (/etc/apt/sources.list)"
+	echo "Before continuing, ensure the \"non-free\" component is enabled in apt sources (/etc/apt/sources.list)"
 	
 	confirm_prompt
 	
-	echo "Confirming non-free component..."
+	echo "Confirming..."
 	if ! grep -E "^[^#].*non-free" "/etc/apt/sources.list" >/dev/null 2>&1; then
-		echo "You must add the \"non-free\" component in apt sources (/etc/apt/sources.list)"
+		echo "\"non-free\" component not found in apt sources (/etc/apt/sources.list)"
 		exit 1
 	fi
 }
@@ -41,13 +41,13 @@ install_wl_drivers() {
 	echo "Updating list of available packages..."
 	sudo apt -y update >/dev/null 2>&1
 
-	echo "Installing Package: linux-image-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
+	echo "Installing required package: linux-image-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
 	sudo apt -y install linux-image-$(uname -r|sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
 
-	echo "Installing Package: linux-headers-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
+	echo "Installing required package: linux-headers-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
 	sudo apt -y install linux-headers-$(uname -r|sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
 
-	echo "Installing Package: broadcom-sta-dkms..."
+	echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
 	sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
 }
 
@@ -60,15 +60,15 @@ configure_modules() {
 }
 
 install_wpa_supplicant() {
-	echo "Installing Package: wpasupplicant..."
+	echo "Installing required package: wpasupplicant..."
 	sudo apt -y install wpasupplicant >/dev/null 2>&1
 }
 
 purge_ifupdown() {
-	echo "Purging the package \"ifupdown\" is recommended to reduce unintended side-effects"
-	echo "Purging Package: ifupdown..."
+	echo "Purge package: ifupdown? (Purging the package \"ifupdown\" is recommended to reduce unintended side-effects)"
 
 	if confirm_prompt; then
+		echo "Purging Package: ifupdown..."
 		sudo mv /etc/network/interfaces /etc/network/interfaces.save >/dev/null 2>&1
 		sudo mv /etc/network/interfaces.d /etc/network/interfaces.d.save >/dev/null 2>&1
 		sudo apt -y purge ifupdown >/dev/null 2>&1
@@ -131,7 +131,7 @@ enable_services() {
 }
 
 optain_ip() {
-	echo "Obtaining IP..."
+	echo "Using DHCP to obtain an IP..."
 	sudo dhclient $INTERFACE >/dev/null 2>&1
 }
 
