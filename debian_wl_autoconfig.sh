@@ -6,21 +6,21 @@ confirm_prompt() {
 	read -p "Continue? [Y/n]: " choice
 
 	case "$choice" in
-		[Yy]*)
-			return 1
-			;;
-		*)
-			return 0
-			;;
+	[Yy]*)
+		return 1
+		;;
+	*)
+		return 0
+		;;
 	esac
 }
 
 # Checks if non-free packages are enabled
 check_sources() {
 	echo "Before continuing, ensure the \"non-free\" component is enabled in apt sources (/etc/apt/sources.list)"
-	
+
 	confirm_prompt
-	
+
 	echo "Confirming..."
 	if ! grep -E "^[^#].*non-free" "/etc/apt/sources.list" >/dev/null 2>&1; then
 		echo "\"non-free\" component not found in apt sources (/etc/apt/sources.list)"
@@ -41,14 +41,20 @@ install_wl_drivers() {
 	echo "Updating list of available packages..."
 	sudo apt -y update >/dev/null 2>&1
 
-	echo "Installing required package: linux-image-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
-	sudo apt -y install linux-image-$(uname -r|sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+	if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+		echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+		sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+	fi
 
-	echo "Installing required package: linux-headers-$(uname -r|sed 's,[^-]*-[^-]*-,,')..."
-	sudo apt -y install linux-headers-$(uname -r|sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+	if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+		echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+		sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+	fi
 
-	echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
-	sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+	if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
+		echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
+		sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+	fi
 }
 
 configure_modules() {
@@ -60,18 +66,22 @@ configure_modules() {
 }
 
 install_wpa_supplicant() {
-	echo "Installing required package: wpasupplicant..."
-	sudo apt -y install wpasupplicant >/dev/null 2>&1
+	if ! dpkg-query -W -f'${Status}' wpasupplicant | grep -c "ok installed"; then
+		echo "Installing required package: wpasupplicant..."
+		sudo apt -y install wpasupplicant >/dev/null 2>&1
+	fi
 }
 
 purge_ifupdown() {
-	echo "Purge package: ifupdown? (Purging the package \"ifupdown\" is recommended to reduce unintended side-effects)"
+	if dpkg-query -W -f'${Status}' ifupdown | grep -c "ok installed"; then
+		echo "Purge package: ifupdown? (Purging \"ifupdown\" is recommended to reduce unintended side-effects)"
 
-	if confirm_prompt; then
-		echo "Purging Package: ifupdown..."
-		sudo mv /etc/network/interfaces /etc/network/interfaces.save >/dev/null 2>&1
-		sudo mv /etc/network/interfaces.d /etc/network/interfaces.d.save >/dev/null 2>&1
-		sudo apt -y purge ifupdown >/dev/null 2>&1
+		if confirm_prompt; then
+			sudo mv /etc/network/interfaces /etc/network/interfaces.save >/dev/null 2>&1
+			sudo mv /etc/network/interfaces.d /etc/network/interfaces.d.save >/dev/null 2>&1
+			echo "Purging Package: ifupdown..."
+			sudo apt -y remove --purge ifupdown >/dev/null 2>&1
+		fi
 	fi
 }
 
@@ -112,11 +122,11 @@ UseDNS=yes" | sudo tee $WL_CONF >/dev/null 2>&1
 create_wpa_conf() {
 	read -p "Enter SSID: " SSID
 	read -p "Enter PSK: " PSK
-	
+
 	echo "Creating wpa_supplicant configuration file ($WPA_CONF)"
 
 	sudo touch $WPA_CONF
-	
+
 	echo "ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev
 update_config=1\n" | sudo tee $WPA_CONF >/dev/null 2>&1
 	wpa_passphrase $SSID $PSK | sudo tee -a $WPA_CONF >/dev/null 2>&1
