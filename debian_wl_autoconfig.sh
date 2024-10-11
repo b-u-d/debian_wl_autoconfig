@@ -16,9 +16,9 @@ confirm_prompt() {
 }
 
 check_pkgs() {
-	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' broadcom-sta-dkms >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1; then
+	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')| grep -q "ok installed" >/dev/null 2>&1 &&
+		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" >/dev/null 2>&1 &&
+		dpkg-query -W -f='${Status}' broadcom-sta-dkms | grep -q "ok installed" >/dev/null 2>&1; then
 		return 0
 	fi
 	return 1
@@ -45,18 +45,18 @@ install_broadcom_wl() {
         echo "Updating list of available packages..."
         sudo apt -y update >/dev/null 2>&1
 
-        if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+        if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed" >/dev/null 2>&1; then
             echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
             sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
         fi
 
-        if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+        if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed" >/dev/null 2>&1; then
             echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
             sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
         fi
 
 		if check_sources; then
-	        if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+	        if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed" >/dev/null 2>&1; then
     	        echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
         	    sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
         	fi
@@ -84,14 +84,14 @@ configure_modules() {
 }
 
 install_wpa_supplicant() {
-	if ! dpkg-query -W -f'${Status}' wpasupplicant >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+	if ! dpkg-query -W -f'${Status}' wpasupplicant | grep -c "ok installed" >/dev/null 2>&1; then
 		echo "Installing required package: wpasupplicant..."
 		sudo apt -y install wpasupplicant >/dev/null 2>&1
 	fi
 }
 
 purge_ifupdown() {
-	if dpkg-query -W -f'${Status}' ifupdown >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+	if dpkg-query -W -f'${Status}' ifupdown | grep -c "ok installed" >/dev/null 2>&1; then
 		echo "Purge package: ifupdown? (Purging ifupdown is recommended to reduce unintended side-effects)"
 
 		if confirm_prompt; then
