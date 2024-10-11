@@ -55,10 +55,12 @@ install_broadcom_wl() {
             sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
         fi
 
-        if check_sources && ! dpkg-query -W -f'${Status}' broadcom-sta-dkms >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
-            echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
-            sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
-        fi
+		if check_sources; then
+	        if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms >/dev/null 2>&1 | grep -c "ok installed" >/dev/null 2>&1; then
+    	        echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
+        	    sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+        	fi
+		fi
     elif check_pkgs && check_internet_connection; then
         echo "Updating list of available packages..."
         sudo apt -y update >/dev/null 2>&1
