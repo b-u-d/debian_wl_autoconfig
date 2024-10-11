@@ -16,9 +16,9 @@ confirm_prompt() {
 }
 
 check_pkgs() {
-	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' broadcom-sta-dkms | grep -q "ok installed" >/dev/null 2>&1; then
+	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1 &&
+		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1 &&
+		dpkg-query -W -f='${Status}' broadcom-sta-dkms >/dev/null 2>&1 | grep -q "ok installed" >/dev/null 2>&1; then
 		return 0
 	fi
 	return 1
