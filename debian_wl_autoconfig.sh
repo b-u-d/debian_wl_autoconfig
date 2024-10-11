@@ -41,36 +41,36 @@ check_internet_connection() {
 }
 
 install_broadcom_wl() {
-	if ! check_pkgs && check_internet_connection; then
-		echo "Updating list of available packages..."
-		sudo apt -y update >/dev/null 2>&1
+    if ! check_pkgs && check_internet_connection; then
+        echo "Updating list of available packages..."
+        sudo apt -y update >/dev/null 2>&1
 
-		if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
-			echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-			sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-		fi
+        if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+            echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+            sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+        fi
 
-		if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
-			echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-			sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-		fi
+        if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+            echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+            sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+        fi
 
-		if check_sources && ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
-			echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
-			sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
-		fi
-	else if check_pkgs && check_internet_connection; then
-		echo "Updating list of available packages..."
-		sudo apt -y update >/dev/null 2>&1
-	else if ! check_pkgs && ! check_internet_connection; then
-		echo "An internet connection is required to continue"
-		exit 1
-	else
-		echo "The required packages are installed, but the list of available packages cannot be updated without a valid internet connection."
-		if ! confirm_prompt; then
-			exit 1
-		fi
-	fi
+        if check_sources && ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
+            echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
+            sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+        fi
+    elif check_pkgs && check_internet_connection; then
+        echo "Updating list of available packages..."
+        sudo apt -y update >/dev/null 2>&1
+    elif ! check_pkgs && ! check_internet_connection; then
+        echo "An internet connection is required to continue."
+        exit 1
+    else
+        echo "The required packages are installed, but the list of available packages cannot be updated without a valid internet connection."
+        if ! confirm_prompt; then
+            exit 1
+        fi
+    fi
 }
 
 configure_modules() {
