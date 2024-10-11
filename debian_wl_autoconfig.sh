@@ -13,13 +13,12 @@ confirm_prompt() {
 
 # Check for an internet connection
 check_internet() {
-	local ips=("1.1.1.1" "8.8.8.8")
-	for ip in "${ips[@]}"; do
-		if ping -c 5 -W 5 "$ip" >/dev/null 2>&1; then
-			return 0 # Success
-		fi
-	done
-	return 1 # Failure
+    for ip in 1.1.1.1 8.8.8.8; do
+        if ping -c 5 -W 5 "$ip" >/dev/null 2>&1; then
+            return 0 # Success
+        fi
+    done
+    return 1 # Failure
 }
 
 # Check if all the required packages are installed
