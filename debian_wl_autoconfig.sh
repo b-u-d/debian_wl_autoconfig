@@ -1,103 +1,114 @@
 #!/bin/sh
 
 WL_CONF="/etc/systemd/network/30-wlan.network"
+KERNEL_VERSION=$(uname -r | sed 's,[^-]*-[^-]*-,,')
 
 confirm_prompt() {
 	read -p "Continue? [Y/n]: " choice
-
 	case "$choice" in
-	[Yy]*)
-		return 1
-		;;
-	*)
-		return 0
-		;;
+	[Yy]* | "") return 0 ;; # Yes
+	*) return 1 ;;          # No
 	esac
 }
 
-check_pkgs() {
-	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" >/dev/null 2>&1 &&
-		dpkg-query -W -f='${Status}' broadcom-sta-dkms | grep -q "ok installed" >/dev/null 2>&1; then
-		return 0
-	fi
-	return 1
+# Check for an internet connection
+check_internet() {
+	local ips=("1.1.1.1" "8.8.8.8")
+	for ip in "${ips[@]}"; do
+		if ping -c 5 -W 5 "$ip" >/dev/null 2>&1; then
+			return 0 # Success
+		fi
+	done
+	return 1 # Failure
 }
 
-# Checks if non-free packages are enabled
+# Check if all the required packages are installed
+check_pkgs() {
+	local packages=(
+		"linux-image-$KERNEL_VERSION"
+		"linux-headers-$KERNEL_VERSION"
+		"broadcom-sta-dkms"
+	)
+
+	for pkg in "${packages[@]}"; do
+		if ! dpkg-query -W -f='${Status}' "$pkg" | grep -q "install ok installed"; then
+			return 1 # Package not installed
+		fi
+	done
+	return 0 # All packages installed
+}
+
+# Check if the broadcom-package is available
 check_apt_wl() {
 	if ! apt-cache show broadcom-sta-dkms >/dev/null 2>&1; then
 		echo "Unable to install package: broadcom-sta-dkms"
 		echo "Ensure you have the non-free repository enabled in /etc/apt/sources.list"
-		exit 1
+		exit 1 # Unable to continue without access to the driver installation files
 	fi
-	return 0
 }
 
-check_internet_connection() {
-	if ! ping -c 1 1.1.1.1 >/dev/null 2>&1; then
-		return 1
-	fi
-	return 0
-}
-
+# Install the broadcom wl drivers and required packages
 install_broadcom_wl() {
-	if ! check_pkgs && check_internet_connection; then
+	if check_internet; then
 		echo "Updating list of available packages..."
 		sudo apt -y update >/dev/null 2>&1
 
-		if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed" >/dev/null 2>&1; then
-			echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-			sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-		fi
+		if ! check_pkgs; then
+			local packages=(
+				"linux-image-$KERNEL_VERSION"
+				"linux-headers-$KERNEL_VERSION"
+			)
 
-		if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed" >/dev/null 2>&1; then
-			echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-			sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-		fi
+			for pkg in "${packages[@]}"; do
+				if ! dpkg-query -W -f='${Status}' "$pkg" | grep -q "install ok installed"; then
+					echo "Installing required package: $pkg..."
+					sudo apt -y install "$pkg" >/dev/null 2>&1
+				fi
+			done
 
-		if check_apt_wl && ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed" >/dev/null 2>&1; then
-			echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
-			sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
-		fi
+			# Check for the broadcom package availability
+			check_apt_wl
 
-	elif check_pkgs && check_internet_connection; then
-		echo "Updating list of available packages..."
-		sudo apt -y update >/dev/null 2>&1
-	elif ! check_pkgs && ! check_internet_connection; then
-		echo "An internet connection is required to continue."
-		exit 1
-	elif check_pkgs && !check_internet_connection; then
-		echo "The required packages are installed, but the list of available packages cannot be updated without a valid internet connection."
-		if ! confirm_prompt; then
-			exit 1
+			if ! dpkg-query -W -f='${Status}' broadcom-sta-dkms | grep -q "install ok installed"; then
+				echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
+				sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+			fi
 		fi
 	else
-		echo "An unknown error occurred, please try again."
+		if check_pkgs; then
+			echo "Required packages are installed, but cannot update package list without internet."
+			if ! confirm_prompt; then
+				exit 1
+			fi
+		else
+			echo "ERROR: Unable to install Broadcom wl drivers."
+			echo "Ensure you have a working internet connection and the non-free repository enabled."
+			exit 1
+		fi
+	fi
 }
 
 configure_modules() {
 	echo "Unloading conflicting modules (b44 b43 b43legacy ssb brcmsmac bcma)..."
 	sudo modprobe -r b44 b43 b43legacy ssb brcmsmac bcma
-
 	echo "Loading the wl module..."
 	sudo modprobe wl
 }
 
 install_wpa_supplicant() {
-	if ! dpkg-query -W -f'${Status}' wpasupplicant | grep -c "ok installed" >/dev/null 2>&1; then
+	if ! dpkg-query -W -f='${Status}' wpasupplicant | grep -q "install ok installed"; then
 		echo "Installing required package: wpasupplicant..."
 		sudo apt -y install wpasupplicant >/dev/null 2>&1
 	fi
 }
 
 purge_ifupdown() {
-	if dpkg-query -W -f'${Status}' ifupdown | grep -c "ok installed" >/dev/null 2>&1; then
+	if dpkg-query -W -f='${Status}' ifupdown | grep -q "install ok installed"; then
 		echo "Purge package: ifupdown? (Purging ifupdown is recommended to reduce unintended side-effects)"
-
 		if confirm_prompt; then
-			sudo mv /etc/network/interfaces /etc/network/interfaces.save >/dev/null 2>&1
-			sudo mv /etc/network/interfaces.d /etc/network/interfaces.d.save >/dev/null 2>&1
+			echo "Backing up interfaces configuration..."
+			sudo mv /etc/network/interfaces{,.save} >/dev/null 2>&1
+			sudo mv /etc/network/interfaces.d{,.save} >/dev/null 2>&1
 			echo "Purging Package: ifupdown..."
 			sudo apt -y remove --purge ifupdown >/dev/null 2>&1
 		fi
@@ -122,19 +133,18 @@ choose_network_interface() {
 # Creates wireless interface configuration file
 create_wl_conf() {
 	echo "Creating wireless interface configuration file ($WL_CONF)"
-
-	sudo touch $WL_CONF
-
-	echo "[Match]
-name=$INTERFACE
-Type=wlan
-WLANInterfaceType=station
-
-[Network]
-DHCP=ipv4
-
-[DHCP]
-UseDNS=yes" | sudo tee $WL_CONF >/dev/null 2>&1
+	{
+		echo "[Match]"
+		echo "name=$INTERFACE"
+		echo "Type=wlan"
+		echo "WLANInterfaceType=station"
+		echo ""
+		echo "[Network]"
+		echo "DHCP=ipv4"
+		echo ""
+		echo "[DHCP]"
+		echo "UseDNS=yes"
+	} | sudo tee "$WL_CONF" >/dev/null 2>&1
 }
 
 # Creates wpa_supplicant configuration file
@@ -143,25 +153,23 @@ create_wpa_conf() {
 	read -p "Enter PSK: " PSK
 
 	echo "Creating wpa_supplicant configuration file ($WPA_CONF)"
-
-	sudo touch $WPA_CONF
-
-	echo "ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev
-update_config=1\n" | sudo tee $WPA_CONF >/dev/null 2>&1
-	wpa_passphrase $SSID $PSK | sudo tee -a $WPA_CONF >/dev/null 2>&1
+	{
+		echo "ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev"
+		echo "update_config=1"
+		wpa_passphrase "$SSID" "$PSK"
+	} | sudo tee "$WPA_CONF" >/dev/null 2>&1
 }
 
 enable_services() {
 	echo "Enabling service: wpa_supplicant@$INTERFACE.service"
-	sudo systemctl enable --now wpa_supplicant@$INTERFACE.service >/dev/null 2>&1
-
+	sudo systemctl enable --now wpa_supplicant@"$INTERFACE".service >/dev/null 2>&1
 	echo "Enabling service: systemd-networkd"
 	sudo systemctl enable --now systemd-networkd >/dev/null 2>&1
 }
 
-optain_ip() {
+obtain_ip() {
 	echo "Using DHCP to obtain an IP..."
-	sudo dhclient $INTERFACE >/dev/null 2>&1
+	sudo dhclient "$INTERFACE" >/dev/null 2>&1
 }
 
 ################################# MAIN #################################
@@ -174,6 +182,6 @@ choose_network_interface
 create_wl_conf
 create_wpa_conf
 enable_services
-optain_ip
+obtain_ip
 
 echo "Complete."
