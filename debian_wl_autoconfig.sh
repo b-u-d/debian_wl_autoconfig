@@ -23,13 +23,7 @@ check_internet() {
 
 # Check if all the required packages are installed
 check_pkgs() {
-	local packages=(
-		"linux-image-$KERNEL_VERSION"
-		"linux-headers-$KERNEL_VERSION"
-		"broadcom-sta-dkms"
-	)
-
-	for pkg in "${packages[@]}"; do
+	for pkg in "linux-image-$KERNEL_VERSION" "linux-headers-$KERNEL_VERSION" "broadcom-sta-dkms"; do
 		if ! dpkg-query -W -f='${Status}' "$pkg" | grep -q "install ok installed"; then
 			return 1 # Package not installed
 		fi
@@ -53,12 +47,8 @@ install_broadcom_wl() {
 		sudo apt -y update >/dev/null 2>&1
 
 		if ! check_pkgs; then
-			local packages=(
-				"linux-image-$KERNEL_VERSION"
-				"linux-headers-$KERNEL_VERSION"
-			)
 
-			for pkg in "${packages[@]}"; do
+			for pkg in "linux-image-$KERNEL_VERSION" "linux-headers-$KERNEL_VERSION"; do
 				if ! dpkg-query -W -f='${Status}' "$pkg" | grep -q "install ok installed"; then
 					echo "Installing required package: $pkg..."
 					sudo apt -y install "$pkg" >/dev/null 2>&1
