@@ -26,27 +26,21 @@ check_pkgs() {
 
 # Checks if non-free packages are enabled
 check_sources() {
-	echo "Before continuing, ensure the \"non-free\" component is enabled in apt sources (/etc/apt/sources.list)"
-
-	confirm_prompt
-
-	echo "Confirming..."
-	if ! grep -E "^[^#].*non-free" "/etc/apt/sources.list" >/dev/null 2>&1; then
-		echo "\"non-free\" component not found in apt sources (/etc/apt/sources.list)"
-		exit 1
-	fi
+	if ! grep -q -E '(^[[:space:]]*deb[[:space:]]+[^#]*[[:space:]]+non-free[[:space:]]*$|^[[:space:]]*deb[[:space:]]+[^#]*[[:space:]]+non-free[[:space:]]+.*)' /etc/apt/sources.list /etc/apt/sources.list.d/*; then
+        echo "Non-free repository is not enabled in /etc/apt/sources.list"
+        exit 1
+    fi
+	return 0
 }
 
 check_internet_connection() {
-	echo "Checking for internet connection..."
-
 	if ! ping -c 1 1.1.1.1 >/dev/null 2>&1; then
 		return 1
 	fi
 	return 0
 }
 
-install_wl_drivers() {
+install_broadcom_wl() {
 	if ! check_pkgs && check_internet_connection; then
 		echo "Updating list of available packages..."
 		sudo apt -y update >/dev/null 2>&1
@@ -61,13 +55,21 @@ install_wl_drivers() {
 			sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
 		fi
 
-		if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
+		if check_sources && ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
 			echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
 			sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
 		fi
+	else if check_pkgs && check_internet_connection; then
+		echo "Updating list of available packages..."
+		sudo apt -y update >/dev/null 2>&1
 	else if ! check_pkgs && ! check_internet_connection; then
 		echo "An internet connection is required to continue"
 		exit 1
+	else
+		echo "The required packages are installed, but the list of available packages cannot be updated without a valid internet connection."
+		if ! confirm_prompt; then
+			exit 1
+		fi
 	fi
 }
 
@@ -88,7 +90,7 @@ install_wpa_supplicant() {
 
 purge_ifupdown() {
 	if dpkg-query -W -f'${Status}' ifupdown | grep -c "ok installed"; then
-		echo "Purge package: ifupdown? (Purging \"ifupdown\" is recommended to reduce unintended side-effects)"
+		echo "Purge package: ifupdown? (Purging ifupdown is recommended to reduce unintended side-effects)"
 
 		if confirm_prompt; then
 			sudo mv /etc/network/interfaces /etc/network/interfaces.save >/dev/null 2>&1
@@ -161,8 +163,7 @@ optain_ip() {
 
 ################################# MAIN #################################
 
-check_sources
-install_wl_drivers
+install_broadcom_wl
 configure_modules
 install_wpa_supplicant
 purge_ifupdown
