@@ -15,6 +15,15 @@ confirm_prompt() {
 	esac
 }
 
+check_pkgs() {
+	if dpkg-query -W -f='${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" &&
+		dpkg-query -W -f='${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -q "ok installed" &&
+		dpkg-query -W -f='${Status}' broadcom-sta-dkms | grep -q "ok installed"; then
+		return 0
+	fi
+	return 1
+}
+
 # Checks if non-free packages are enabled
 check_sources() {
 	echo "Before continuing, ensure the \"non-free\" component is enabled in apt sources (/etc/apt/sources.list)"
@@ -41,19 +50,22 @@ install_wl_drivers() {
 	echo "Updating list of available packages..."
 	sudo apt -y update >/dev/null 2>&1
 
-	if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
-		echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-		sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-	fi
+	if ! check_pkgs; then
+		check_internet_connection
+		if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+			echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+			sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+		fi
 
-	if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
-		echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
-		sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
-	fi
+		if ! dpkg-query -W -f'${Status}' linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
+			echo "Installing required package: linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
+			sudo apt -y install linux-headers-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
+		fi
 
-	if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
-		echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
-		sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+		if ! dpkg-query -W -f'${Status}' broadcom-sta-dkms | grep -c "ok installed"; then
+			echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
+			sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
+		fi
 	fi
 }
 
@@ -148,7 +160,6 @@ optain_ip() {
 ################################# MAIN #################################
 
 check_sources
-check_internet_connection
 install_wl_drivers
 configure_modules
 install_wpa_supplicant
