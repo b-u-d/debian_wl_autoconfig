@@ -67,12 +67,13 @@ install_broadcom_wl() {
 	elif ! check_pkgs && ! check_internet_connection; then
 		echo "An internet connection is required to continue."
 		exit 1
-	else
+	elif check_pkgs && !check_internet_connection; then
 		echo "The required packages are installed, but the list of available packages cannot be updated without a valid internet connection."
 		if ! confirm_prompt; then
 			exit 1
 		fi
-	fi
+	else
+		echo "An unknown error occurred, please try again."
 }
 
 configure_modules() {
