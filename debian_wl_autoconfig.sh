@@ -41,17 +41,16 @@ check_internet_connection() {
 	echo "Checking for internet connection..."
 
 	if ! ping -c 1 1.1.1.1 >/dev/null 2>&1; then
-		echo "An internet connection is required to continue"
-		exit 1
+		return 1
 	fi
+	return 0
 }
 
 install_wl_drivers() {
-	echo "Updating list of available packages..."
-	sudo apt -y update >/dev/null 2>&1
+	if ! check_pkgs && check_internet_connection; then
+		echo "Updating list of available packages..."
+		sudo apt -y update >/dev/null 2>&1
 
-	if ! check_pkgs; then
-		check_internet_connection
 		if ! dpkg-query -W -f'${Status}' linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') | grep -c "ok installed"; then
 			echo "Installing required package: linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,')..."
 			sudo apt -y install linux-image-$(uname -r | sed 's,[^-]*-[^-]*-,,') >/dev/null 2>&1
@@ -66,6 +65,9 @@ install_wl_drivers() {
 			echo "Installing Broadcom wl drivers: broadcom-sta-dkms..."
 			sudo apt -y install broadcom-sta-dkms >/dev/null 2>&1
 		fi
+	else if ! check_pkgs && ! check_internet_connection; then
+		echo "An internet connection is required to continue"
+		exit 1
 	fi
 }
 
